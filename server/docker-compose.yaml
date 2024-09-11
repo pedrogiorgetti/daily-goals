@@ -1,0 +1,12 @@
+name: goals-io
+
+services:
+  postgres:
+    image: bitnami/postgresql:14.13.0
+    container_name: goalsio-db
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: goalsio
