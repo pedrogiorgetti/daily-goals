@@ -40,19 +40,14 @@ Before you begin, ensure you have the following installed on your system:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/ama.git
-   cd ama
+   git clone https://github.com/yourusername/goals.io.git
+   cd goals.io
    ```
 
 2. **Backend setup (NODE.js)**:
    ```bash
-   cd go
+   cd server
    ```
-
-   - Navigate to the server directory:
-    ```bash
-    cd server
-    ```
 
   - Install dependencies:
     ```bash
