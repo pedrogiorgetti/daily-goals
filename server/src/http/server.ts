@@ -1,14 +1,14 @@
-import fastifyCors from '@fastify/cors';
-import fastify, { type FastifyInstance } from 'fastify';
+import fastifyCors from "@fastify/cors";
+import fastify, { type FastifyInstance } from "fastify";
 import {
   type FastifyPluginAsyncZod,
   serializerCompiler,
   validatorCompiler,
   type ZodTypeProvider,
-} from 'fastify-type-provider-zod';
+} from "fastify-type-provider-zod";
 
-import { achievedGoalsRoutes } from './routes/achieved-goals.routes';
-import { goalsRoutes } from './routes/goals.routes';
+import { achievedGoalsRoutes } from "./routes/achieved-goals.routes";
+import { goalsRoutes } from "./routes/goals.routes";
 
 const routesToRegister = [...goalsRoutes, ...achievedGoalsRoutes];
 
@@ -26,7 +26,7 @@ const loadApp: FastifyPluginAsyncZod = async (fastify: FastifyInstance) => {
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 
 app.register(fastifyCors, {
-  origin: '*',
+  origin: "*",
 });
 
 app.setValidatorCompiler(validatorCompiler);
@@ -35,5 +35,5 @@ app.setSerializerCompiler(serializerCompiler);
 app.register(loadApp);
 
 app.listen({ port: 3333 }).then(() => {
-  console.log('HTTP Server is running on port 3333');
+  console.log("HTTP Server is running on port 3333");
 });

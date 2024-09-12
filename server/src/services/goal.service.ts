@@ -1,43 +1,40 @@
-import dayjs from 'dayjs';
-import { db } from 'db';
-import { achievedGoals, goals } from 'db/schema';
-import { and, count, eq, gte, lte, sql } from 'drizzle-orm';
-import { Goal } from 'entities/goal.entity';
+import dayjs from "dayjs";
+import { db } from "db";
+import { achievedGoals, goals } from "db/schema";
+import { and, count, desc, eq, gte, lte, sql } from "drizzle-orm";
+import type { Goal } from "entities/goal.entity";
 
-interface CreateGoalInput {
+type CreateGoalInput = {
   title: string;
   desiredWeeklyFrequency: number;
-}
+};
 
-interface CreateGoalOutput {
+type CreateGoalOutput = {
   goal: Goal;
-}
+};
 
-interface IGoalList extends Goal {
+type IGoalList = Goal & {
   achievedCount: number;
-}
+};
 
-interface GetGoalsOutput {
+type GetGoalsOutput = {
   list: IGoalList[];
-}
+};
 
-interface GoalsPerDay {
-  [key: string]: {
-    id: string;
-    title: string;
-    achievedAt: string;
-  }[];
-}
+type AchievedGoalsPerDay = Record<
+  string,
+  { id: string; title: string; achievedAt: string }[]
+>;
 
-interface Summary {
-  goalsPerDay: GoalsPerDay;
+type Summary = {
+  achievedGoalsPerDay: AchievedGoalsPerDay;
   totalAchieved: number;
   total: number;
-}
+};
 
-interface GetWeekGoalsSummaryOutput {
-  summary: Summary[];
-}
+type GetWeekGoalsSummaryOutput = {
+  summary: Summary;
+};
 
 export class GoalService {
   database = db;
@@ -57,25 +54,25 @@ export class GoalService {
   }
 
   async getMany(): Promise<GetGoalsOutput> {
-    const startOfWeek = dayjs().startOf('week').toDate();
-    const endOfWeek = dayjs().endOf('week').toDate();
+    const startOfWeek = dayjs().startOf("week").toDate();
+    const endOfWeek = dayjs().endOf("week").toDate();
 
     const goalsCreatedUpToWeek = this.goalsCreatedUpToWeekSubQuery();
 
-    const achievedGoalsCount = this.database.$with('achieved_goals_count').as(
+    const achievedGoalsCount = this.database.$with("achieved_goals_count").as(
       this.database
         .select({
           goalId: this.achievedGoalsTable.goalId,
-          total: count(this.achievedGoalsTable.id).as('achievedCount'),
+          total: count(this.achievedGoalsTable.id).as("achievedCount"),
         })
         .from(this.achievedGoalsTable)
         .where(
           and(
             gte(this.achievedGoalsTable.createAt, startOfWeek),
-            lte(this.achievedGoalsTable.createAt, endOfWeek),
-          ),
+            lte(this.achievedGoalsTable.createAt, endOfWeek)
+          )
         )
-        .groupBy(this.achievedGoalsTable.goalId),
+        .groupBy(this.achievedGoalsTable.goalId)
     );
 
     const result = await this.database
@@ -87,12 +84,12 @@ export class GoalService {
         createAt: goalsCreatedUpToWeek.createAt,
         achievedCount: sql`COALESCE(${achievedGoalsCount.total}, 0)`
           .mapWith(Number)
-          .as('achievedCount'),
+          .as("achievedCount"),
       })
       .from(goalsCreatedUpToWeek)
       .leftJoin(
         achievedGoalsCount,
-        eq(achievedGoalsCount.goalId, goalsCreatedUpToWeek.id),
+        eq(achievedGoalsCount.goalId, goalsCreatedUpToWeek.id)
       );
 
     return {
@@ -101,36 +98,37 @@ export class GoalService {
   }
 
   async getWeekSummary(): Promise<GetWeekGoalsSummaryOutput> {
-    const startOfWeek = dayjs().startOf('week').toDate();
-    const endOfWeek = dayjs().endOf('week').toDate();
+    const startOfWeek = dayjs().startOf("week").toDate();
+    const endOfWeek = dayjs().endOf("week").toDate();
 
     const goalsCreatedUpToWeek = this.goalsCreatedUpToWeekSubQuery();
 
-    const achievedGoalsInWeek = this.database.$with('achieved_goals_count').as(
+    const achievedGoalsInWeek = this.database.$with("achieved_goals_count").as(
       this.database
         .select({
           id: this.achievedGoalsTable.id,
           title: this.goalsTable.title,
           achievedAt: this.achievedGoalsTable.createAt,
           achievedAtDate: sql`DATE(${this.achievedGoalsTable.createAt})`.as(
-            'achievedAtDate',
+            "achievedAtDate"
           ),
         })
         .from(achievedGoals)
         .innerJoin(
           this.goalsTable,
-          eq(this.goalsTable.id, this.achievedGoalsTable.goalId),
+          eq(this.goalsTable.id, this.achievedGoalsTable.goalId)
         )
         .where(
           and(
             gte(this.achievedGoalsTable.createAt, startOfWeek),
-            lte(this.achievedGoalsTable.createAt, endOfWeek),
-          ),
-        ),
+            lte(this.achievedGoalsTable.createAt, endOfWeek)
+          )
+        )
+        .orderBy(desc(this.achievedGoalsTable.createAt))
     );
 
     const achievedGoalsByWeekDay = this.database
-      .$with('achieved_goals_by_day')
+      .$with("achieved_goals_by_day")
       .as(
         this.database
           .select({
@@ -143,10 +141,11 @@ export class GoalService {
                   'achievedAt', ${achievedGoalsInWeek.achievedAt}
                 )
               )
-            `.as('list'),
+            `.as("list"),
           })
           .from(achievedGoalsInWeek)
-          .groupBy(achievedGoalsInWeek.achievedAtDate),
+          .groupBy(achievedGoalsInWeek.achievedAtDate)
+          .orderBy(desc(achievedGoalsInWeek.achievedAtDate))
       );
 
     const result = await this.database
@@ -154,27 +153,27 @@ export class GoalService {
       .select({
         totalAchieved: sql`(SELECT COUNT(*) FROM ${achievedGoalsInWeek})`
           .mapWith(Number)
-          .as('totalAchieved'),
+          .as("totalAchieved"),
         total:
           sql`(SELECT SUM(${goalsCreatedUpToWeek.desiredWeeklyFrequency}) FROM ${goalsCreatedUpToWeek})`
             .mapWith(Number)
-            .as('total'),
-        goalsPerDay: sql<GoalsPerDay>`JSON_OBJECT_AGG(
+            .as("total"),
+        achievedGoalsPerDay: sql<AchievedGoalsPerDay>`JSON_OBJECT_AGG(
           ${achievedGoalsByWeekDay.achievedAtDate},
           ${achievedGoalsByWeekDay.list}
-        )`.as('goalsPerDay'),
+        )`.as("achievedGoalsPerDay"),
       })
       .from(achievedGoalsByWeekDay);
 
     return {
-      summary: result,
+      summary: result[0],
     };
   }
 
   private goalsCreatedUpToWeekSubQuery() {
-    const endOfWeek = dayjs().endOf('week').toDate();
+    const endOfWeek = dayjs().endOf("week").toDate();
 
-    const query = this.database.$with('goals_created_up_to_week').as(
+    const query = this.database.$with("goals_created_up_to_week").as(
       this.database
         .select({
           id: this.goalsTable.id,
@@ -183,7 +182,7 @@ export class GoalService {
           createAt: this.goalsTable.createAt,
         })
         .from(this.goalsTable)
-        .where(lte(this.goalsTable.createAt, endOfWeek)),
+        .where(lte(this.goalsTable.createAt, endOfWeek))
     );
 
     return query;

@@ -1,21 +1,21 @@
-import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import z from 'zod';
+import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import z from "zod";
 
-import { GoalService } from 'services/goal.service';
+import { GoalService } from "services/goal.service";
 
 const goalService = new GoalService();
 
-const createGoal: FastifyPluginAsyncZod = async function (app) {
+const createGoal: FastifyPluginAsyncZod = async (app) => {
   app.post(
-    '/goals',
+    "/goals",
     {
       schema: {
         body: z.object({
           title: z.string({
-            required_error: 'Title is required',
+            required_error: "Title is required",
           }),
           desiredWeeklyFrequency: z
-            .number({ required_error: 'The frequency is required' })
+            .number({ required_error: "The frequency is required" })
             .int()
             .min(1)
             .max(7),
@@ -27,15 +27,15 @@ const createGoal: FastifyPluginAsyncZod = async function (app) {
 
       const response = reply
         .status(201)
-        .send({ goal, message: 'Goal created with success' });
+        .send({ goal, message: "Goal created with success" });
 
       return response;
-    },
+    }
   );
 };
 
-const getGoals: FastifyPluginAsyncZod = async function (app) {
-  app.get('/goals', async (_, reply) => {
+const getGoals: FastifyPluginAsyncZod = async (app) => {
+  app.get("/goals", async (_, reply) => {
     const { list } = await goalService.getMany();
 
     const response = reply.status(200).send({
@@ -45,8 +45,8 @@ const getGoals: FastifyPluginAsyncZod = async function (app) {
   });
 };
 
-const getWeekGoalsSummary: FastifyPluginAsyncZod = async function (app) {
-  app.get('/goals/week-summary', async (_, reply) => {
+const getWeekGoalsSummary: FastifyPluginAsyncZod = async (app) => {
+  app.get("/goals/week-summary", async (_, reply) => {
     const weekGoalsSummary = await goalService.getWeekSummary();
 
     const response = reply.status(200).send(weekGoalsSummary);
